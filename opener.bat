@@ -1,0 +1,1 @@
+@n J:\jpp\opener.js %1
