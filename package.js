@@ -218,7 +218,7 @@ function map(dir,outFile,deflate=true) {
 
 function addFIles(outF,type,meta,dirs,files,wDir,deflate=true) {
 	
-	return new Promise(resolve=>{
+	return new Promise((resolve,reject)=>{
 		
 		let origDir = process.cwd() ;
 		process.chdir(wDir) ;
@@ -487,6 +487,48 @@ function unpackFiles(file,dirs,files,headerLen,out) {
 	
 }
 
+function getFileNice(ob,file) {
+	
+	return getFile(ob.path,ob.files,file,ob.headerLen) ;
+	
+}
+
+function getFile(file,files,toGet,headerLen) {
+	
+	toGet = files.indexOf(toGet) ;
+	return new Promise((resolve,reject)=>{
+		
+		let readArgs = [file,{start:files[toGet+1]+headerLen,end:files[toGet+2]+headerLen}] ;
+		
+		fs.open(file,"r",(err,fd)=>{
+			
+			if (err) {
+				
+				reject(err) ;
+				return ;
+				
+			}
+			
+			let data = Buffer.alloc(files[toGet+2]-files[toGet+1]) ;
+			fs.read(fd,data,0,files[toGet+2]-files[toGet+1],files[toGet+1]+headerLen,err=>{
+				
+				if (err) {
+					
+					reject(err) ;
+					return ;
+					
+				}
+				
+				resolve(data) ;
+				
+			}) ;
+			
+		}) ;
+		
+	}) ;
+	
+}
+
 function readPackage(file) {
 	
 	return new Promise(resolve=>{
@@ -496,6 +538,12 @@ function readPackage(file) {
 			unPackage(path).then(d=>{
 				
 				console.log("YEAH") ;
+				let fileNames = new Array() ;
+				for (let doing = 0 ; doing < d[4].length ; doing+=3) {
+					
+					fileNames.push(d[4][doing]) ;
+					
+				}
 				resolve({
 					
 					realpath:path,
@@ -504,7 +552,8 @@ function readPackage(file) {
 					data:d[2],
 					dirs:d[3],
 					files:d[4],
-					headerLen:d[5]
+					headerLen:d[5],
+					fileNames:fileNames
 					
 				}) ;
 				
@@ -532,6 +581,7 @@ module.exports = {
 	unpack:unpackFilesF,
 	create:createPackage,
 	map:map,
+	getFile:getFileNice,
 	onReady:_=>{},
 	isReady:false
 	
